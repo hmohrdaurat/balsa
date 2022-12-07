@@ -20,7 +20,7 @@ import subprocess
 import pandas as pd
 
 from balsa.util import plans_lib
-import pg_executor
+from pg_executor.pg_executor import pg_executor
 
 
 def GetServerVersion():
@@ -55,7 +55,7 @@ def _SetGeneticOptimizer(flag, cursor):
 
 def DropBufferCache():
     # WARNING: no effect if PG is running on another machine
-    subprocess.check_output(['free', '&&', 'sync'])
+    subprocess.check_output(['free', '&&', 'sync'], shell=True)
     subprocess.check_output(
         ['sudo', 'sh', '-c', 'echo 3 > /proc/sys/vm/drop_caches'])
     subprocess.check_output(['free'])

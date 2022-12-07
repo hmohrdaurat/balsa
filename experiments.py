@@ -33,6 +33,14 @@ RAND_52_TEST_QUERIES = [
     '22b.sql', '17c.sql', '24b.sql', '10a.sql', '22c.sql'
 ]
 
+SNOWFLAKE_QUERIES = [
+    # train
+    #'022ae.sql', '034ah.sql', '046ak.sql', '058an.sql', '080aq.sql', '121as.sql', '178av.sql', '247az.sql', '248ab.sql',
+    #'024ac.sql', '039ay.sql', '047au.sql', '055at.sql', '069am.sql', '95ar.sql', '141al.sql', '211ai.sql', '250ad.sql',
+    # test
+    '020aa.sql', '030aa.sql', '040aa.sql', '050aa.sql', '070aa.sql', '100aa.sql', '150aa.sql', '200aa.sql', '250aa.sql'
+]
+
 LR_SCHEDULES = {
     'C': {
         'lr_piecewise': [
@@ -62,8 +70,8 @@ class BalsaParams(object):
     @classmethod
     def Params(cls):
         p = hyperparams.InstantiableParams(cls)
-        p.Define('db', 'imdbload', 'Name of the Postgres database.')
-        p.Define('query_dir', 'queries/join-order-benchmark',
+        p.Define('db', 'snowflake', 'Name of the Postgres database.')
+        p.Define('query_dir', 'queries/snowflake-train',
                  'Directory of the .sql queries.')
         p.Define(
             'query_glob', '*.sql',
@@ -404,6 +412,15 @@ class Rand52MinCardCostOnPol(MinCardCostOnPol):
         p.sim_checkpoint = 'checkpoints/sim-MinCardCost-rand52split-680secs.ckpt'
         return p
 
+@balsa.params_registry.Register
+class SnowflakeMinCardCostOnPol(MinCardCostOnPol):
+
+    def Params(self):
+        p = super().Params()
+        p.query_glob = ['[012][0257]0a[ahpsz].sql']
+        p.test_query_glob = SNOWFLAKE_QUERIES
+        p.sim_checkpoint = 'checkpoints/sim-MinCardCost-snowflake-680secs.ckpt'
+        return p
 
 @balsa.params_registry.Register
 class Rand52MinCardCostOnPolLrC(Rand52MinCardCostOnPol):
@@ -411,6 +428,11 @@ class Rand52MinCardCostOnPolLrC(Rand52MinCardCostOnPol):
     def Params(self):
         return super().Params().Set(**LR_SCHEDULES['C'])
 
+@balsa.params_registry.Register
+class SnowflakeMinCardCostOnPolLrC(SnowflakeMinCardCostOnPol):
+
+    def Params(self):
+        return super().Params().Set(**LR_SCHEDULES['C'])
 
 @balsa.params_registry.Register  # keep
 class Balsa_JOBRandSplit(Rand52MinCardCostOnPolLrC):
@@ -421,6 +443,14 @@ class Balsa_JOBRandSplit(Rand52MinCardCostOnPolLrC):
         p = p.Set(**LR_SCHEDULES['C10'])
         return p
 
+@balsa.params_registry.Register  # keep
+class Balsa_Snowflake(SnowflakeMinCardCostOnPolLrC):
+
+    def Params(self):
+        p = super().Params()
+        p.increment_iter_despite_timeouts = True
+        p = p.Set(**LR_SCHEDULES['C10'])
+        return p
 
 @balsa.params_registry.Register
 class Balsa_JOBRandSplitReplay(Balsa_JOBRandSplit):  # keep
@@ -571,6 +601,38 @@ class Balsa8x_TrainJOB_TestExtJOB(Balsa1x_TrainJOB_TestExtJOB):
 
 
 @balsa.params_registry.Register
+class NeoImplSnowflake(BalsaParams):
+
+    def Params(self):
+        p = super().Params()
+        p.query_glob = ['[012][0257]0a[ahpsz].sql']
+        p.test_query_glob = SNOWFLAKE_QUERIES
+
+        p.test_every_n_iters = 1
+
+        # Algorithmic choices below.
+
+        # No simulator.
+        p.sim = False
+        p.sim_checkpoint = None
+
+        # Off-policy, retrain always.
+        p.on_policy = False
+        p.param_tau = 1
+
+        # Use demonstrations from expert.
+        p.skip_training_on_expert = False
+
+        # No timeouts.
+        p.use_timeout = False
+        # NOTE: this flag is necessary because there could be some 'treating as
+        # timeouts' feedback even when use_timeout is set to False.  In those
+        # cases, skip training on those labels.
+        p.skip_training_on_timeouts = True
+
+        return p
+
+@balsa.params_registry.Register
 class NeoImplRand52(BalsaParams):
 
     def Params(self):
@@ -609,6 +671,11 @@ class NeoImplRand52Reset(NeoImplRand52):
     def Params(self):
         return super().Params().Set(param_tau=0.0)
 
+@balsa.params_registry.Register
+class NeoImplSnowflakeReset(NeoImplSnowflake):
+
+    def Params(self):
+        return super().Params().Set(param_tau=0.0)
 
 @balsa.params_registry.Register  # keep
 class NeoImpl_JOBRandSplit(NeoImplRand52Reset):
@@ -616,6 +683,11 @@ class NeoImpl_JOBRandSplit(NeoImplRand52Reset):
     def Params(self):
         return super().Params().Set(dedup_training_data=False)
 
+@balsa.params_registry.Register  # keep
+class NeoImpl_Snowflake(NeoImplSnowflakeReset):
+
+    def Params(self):
+        return super().Params().Set(dedup_training_data=False)
 
 ########################## Ablation: sim ##########################
 
@@ -657,6 +729,15 @@ class JOBRandSplit_PostgresSim(Balsa_JOBRandSplit):
         p.sim_checkpoint = 'checkpoints/sim-PostgresCost-rand52split-26epochs.ckpt'
         return p
 
+@balsa.params_registry.Register  # keep
+class Snowflake_PostgresSim(Balsa_Snowflake):
+
+    def Params(self):
+        p = super().Params()
+        # Use PostgresCost as the simulator.
+        p.cost_model = 'postgrescost'
+        p.sim_checkpoint = 'checkpoints/sim-PostgresCost-snowflake-26epochs.ckpt'
+        return p
 
 ########################## Ablation: timeouts ##########################
 

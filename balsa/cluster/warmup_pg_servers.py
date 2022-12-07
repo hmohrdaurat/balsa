@@ -29,14 +29,19 @@ import re
 import aiopg
 
 CLUSTER_CONFIG_DEFAULT_PATH = '~/balsa/balsa/cluster/cluster.yml'
-WORKLOAD = "job"
+WORKLOAD = "snowflake"
 USE_LOCAL_POSTGRES = False
 TEST_QUERIES_ONLY = False
 IP_ADDR_REGEX = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
 
 if WORKLOAD == "job":
-    DSN_FMT = "postgres://psycopg:psycopg@{server}/imdbload"
+    DSN_FMT = "postgres://psycopg:psycopg@{server}/postgres"
     QUERIES_DIR = "~/balsa/queries/join-order-benchmark"
+    QUERY_TIMEOUT = 3600
+    TARGET_LATENCY_SECS = 200    
+elif WORKLOAD == "snowflake":
+    DSN_FMT = "postgres://psycopg:psycopg@{server}/snowflake"
+    QUERIES_DIR = "~/balsa/queries/snowflake-train"
     QUERY_TIMEOUT = 3600
     TARGET_LATENCY_SECS = 200
 else:

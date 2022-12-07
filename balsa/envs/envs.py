@@ -161,7 +161,7 @@ class JoinOrderBenchmark(Workload):
         p = super().Params()
         # Needs to be an absolute path for rllib.
         module_dir = os.path.abspath(os.path.dirname(balsa.__file__) + '/../')
-        p.query_dir = os.path.join(module_dir, 'queries/join-order-benchmark')
+        p.query_dir = os.path.join(module_dir, 'queries/snowflake-train')
         return p
 
     def __init__(self, params):

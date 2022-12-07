@@ -1,0 +1,1 @@
+SELECT * FROM T_1, T_1_3, T_1_13, T_1_12, T_1_4, T_1_10, T_1_13_8 WHERE T_1.t_1_3 = T_1_3.pk AND T_1.t_1_13 = T_1_13.pk AND T_1.t_1_12 = T_1_12.pk AND T_1.t_1_4 = T_1_4.pk AND T_1.t_1_10 = T_1_10.pk AND T_1_13.t_1_13_8 = T_1_13_8.pk; -- 7
